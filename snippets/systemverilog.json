@@ -1,32 +1,31 @@
 {
-    "timescale": {
-        "prefix": ["ts", "timescale", "`timescale"],
-        "body": ["`timescale ${1:1ps}/${2:100ns}$0"],
-        "description": "add timescale for verification"
-    },
-
     "module": {
         "prefix": "module",
         "body": [
-            "module ${1:moduleName} (",
-            "\t${2:ports}",
+            "`default_nettype none",
+            "",
+            "module ${1:$TM_FILENAME_BASE} (",
+            "\tinput wire clk$2,",
+            "\tinput wire rst$2_n",
             ");",
             "\t$0",
-            "endmodule"
+            "endmodule",
+            "",
+            "`default_nettype wire"
         ],
         "description": "Insert a module without parameter"
     },
 
     "if": {
         "prefix": "if",
-        "body": ["if (${1:conditions}) begin", "\t$0", "end"],
+        "body": ["if ($1) begin", "\t$0", "end"],
         "description": "if (...) begin ... end"
     },
 
     "ifelse": {
         "prefix": "ifelse",
         "body": [
-            "if (${1:conditions}) begin",
+            "if ($1) begin",
             "\t$2",
             "end",
             "else begin",
@@ -56,31 +55,21 @@
 
     "case": {
         "prefix": "case",
-        "body": ["case (${1:param})", "\t$2", "\tdefault : $0", "endcase"],
+        "body": [
+          "case (${1:switch})",
+          "\t${2:first} : begin",
+          "\tend",
+          "\tdefault : begin",
+          "\t$0",
+          "\tend",
+          "endcase"
+        ],
         "description": "case () ... endcase"
-    },
-
-    "casex": {
-        "prefix": "casex",
-        "body": ["casex (${1:param})", "\t$2", "\tdefault : $0", "endcase"],
-        "description": "casex () ... endcase"
-    },
-
-    "casez": {
-        "prefix": "casez",
-        "body": ["casez (${1:param})", "\t$2", "\tdefault : $0", "endcase"],
-        "description": "casez () ... endcase"
-    },
-
-    "parameter": {
-        "prefix": "parameter",
-        "body": ["parameter $1 = $2;"],
-        "description": "paramter var = val;"
     },
 
     "localparam": {
         "prefix": "localparam",
-        "body": "localparam $1 = $2;",
+        "body": "localparam $1_c = $2;",
         "description": "localparam var = val;"
     },
 
@@ -97,8 +86,13 @@
     "always_ff block": {
         "prefix": "always_ff",
         "body": [
-            "always_ff @(${1:clock}) begin : ${2:blockName}",
+            "always_ff @(posedge clk$1 or negedge rst$1_n) begin",
+            "\tif (!rst$1_n) begin",
+            "\t\t$2",
+            "\tend",
+            "\telse begin",
             "\t$0",
+            "\tend",
             "end"
         ],
         "description": "Insert an always_ff block"
@@ -106,25 +100,19 @@
 
     "always_comb block": {
         "prefix": "always_comb",
-        "body": ["always_comb begin : ${1:blockName}", "\t$0", "end"],
+        "body": ["always_comb begin", "  $0", "end"],
         "description": "Insert an always_comb block"
-    },
-
-    "always_latch block": {
-        "prefix": "always_latch",
-        "body": ["always_latch begin : ${1:blockName}", "\t$0", "end"],
-        "description": "Insert an always_latch block"
     },
 
     "typedef enum": {
         "prefix": "typedef enum",
-        "body": ["typedef enum {$1} ${2};"],
+        "body": ["typedef enum {", "\t$1_e", "} $2_t;"],
         "description": "typedef enum (data_type) { ... } name"
     },
 
     "enum": {
         "prefix": ["en", "enum"],
-        "body": ["enum {$1} ${2};"],
+        "body": ["enum {", "\t$1_e", "} ${2};"],
         "description": "enum (data_type) { ... } name"
     },
 
@@ -154,7 +142,7 @@
 
     "for loop": {
         "prefix": "for",
-        "body": ["for ($1 = $2; $3; $4) begin", "\t$0", "end"],
+        "body": ["for (int ${1:i} = ${2:0}; $1 < $3; $1${4:++}) begin", "\t$0", "end"],
         "description": "for (...) begin ... end"
     },
 
@@ -184,7 +172,7 @@
 
     "constraint": {
         "prefix": "constraint",
-        "body": ["constraint ${1:constraintName} {", "\t$0", "}"],
+        "body": ["constraint ${1:constraintName}_c {", "\t$0", "}"],
         "description": "systemverilog constraint"
     },
 
@@ -230,7 +218,7 @@
 
     "class": {
         "prefix": "class",
-        "body": ["class ${1:className};", "\t$0", "endclass : $1"],
+        "body": ["class ${1:className};", "\t$0", "endclass"],
         "description": "class name; ... endclass"
     },
 
@@ -263,7 +251,7 @@
     "uvm_macro_info": {
         "prefix": "`uvm_info",
         "body": [
-            "`uvm_info(\"${1:$TM_FILENAME_BASE}\", \"${2:message}\", ${3|UVM_NONE,UVM_LOW,UVM_MEDIUM,UVM_HIGH,UVM_FULL,UVM_DEBUG|})\n$0"
+            "`uvm_info(get_type_name(), \"${1:message}\", UVM_${2|NONE,LOW,MEDIUM,HIGH,FULL,DEBUG|})\n$0"
         ],
         "description": "uvm_info macro"
     },
@@ -271,7 +259,7 @@
     "uvm_macro_warning": {
         "prefix": "`uvm_warning",
         "body": [
-            "`uvm_warning(\"${1:$TM_FILENAME_BASE}\", \"${2:message}\")\n$0"
+            "`uvm_warning(get_type_name(), \"${1:message}\")\n$0"
         ],
         "description": "uvm_warning macro"
     },
@@ -279,7 +267,7 @@
     "uvm_macro_error": {
         "prefix": "`uvm_error",
         "body": [
-            "`uvm_error(\"${1:$TM_FILENAME_BASE}\", \"${2:message}\")\n$0"
+            "`uvm_error(get_type_name(), \"${2:message}\")\n$0"
         ],
         "description": "uvm_error macro"
     },
@@ -287,7 +275,7 @@
     "uvm_macro_fatal": {
         "prefix": "`uvm_fatal",
         "body": [
-            "`uvm_fatal(\"${1:$TM_FILENAME_BASE}\", \"${2:message}\")\n$0"
+            "`uvm_fatal(get_type_name(), \"${2:message}\")\n$0"
         ],
         "description": "uvm_fatal macro"
     },
