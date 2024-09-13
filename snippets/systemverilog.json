@@ -298,7 +298,7 @@
 
     "uvm_macro_field": {
         "prefix": ["`uvm_field", "field automation"],
-        "body": "`uvm_field_${1:data_type}($2, ${3:flag bit});",
+        "body": "`uvm_field_${1:data_type}($2, UVM_DEFAULT);",
         "description": "uvm field automation"
     },
 
@@ -420,7 +420,7 @@
     "uvm_object_factory_instantiation": {
         "prefix": ["uvm_factory_instantiation_object", "create_object"],
         "body": [
-            "${1:instance_name} = ${2:<object_type>}::type_id::create(.name(\"$1\"), .contxt(get_full_name()));\n"
+            "${1:instance_name} = ${2:<object_type>}::type_id::create(\"$1\", get_full_name());\n"
         ],
         "description": "use factory to create an instance of an object"
     },
