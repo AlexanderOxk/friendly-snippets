@@ -200,13 +200,13 @@
 
     "package": {
         "prefix": "package",
-        "body": ["package ${1:packageName};", "\t$0", "endpackage"],
+        "body": ["package ${1:$TM_FILENAME_BASE};", "\t$0", "endpackage"],
         "description": "package name; ... endpackage"
     },
 
     "interface": {
         "prefix": "interface",
-        "body": ["interface ${1:interfaceName};", "\t$0", "endinterface"],
+        "body": ["interface ${1:$TM_FILENAME_BASE};", "\t$0", "endinterface"],
         "description": "interface name; ... endinterface"
     },
 
@@ -298,7 +298,7 @@
 
     "uvm_macro_field": {
         "prefix": ["`uvm_field", "field automation"],
-        "body": "`uvm_field_${1:data_type}($2, UVM_DEFAULT);",
+        "body": "`uvm_field_${1:data_type}($2, UVM_DEFAULT)",
         "description": "uvm field automation"
     },
 
@@ -325,6 +325,19 @@
         "prefix": "`uvm_component_utils",
         "body": ["`uvm_component_utils(${1:type})"],
         "description": "register the component class to factory"
+    },
+
+    "uvm_macro_component_utils_block": {
+        "prefix": [
+            "`uvm_component_utils_begin",
+            "`uvm_component_utils_block"
+        ],
+        "body": [
+            "`uvm_component_utils_begin(${1:type})",
+            "\t$2",
+            "`uvm_component_utils_end"
+        ],
+        "description": "register the component class to factory, with field automation"
     },
 
     "uvm_macro_component_param_utils": {
@@ -407,6 +420,16 @@
             "uvm_config_db#(${1:type})::get(${2:contxt}, ${3:inst_name}, ${4:field_name}, ${5:value});"
         ],
         "description": "get the value from config database"
+    },
+
+    "uvm_config_db_get_fatal": {
+        "prefix": "uvm_config_db_get_fatal",
+        "body": [
+            "if (!uvm_config_db#(${1:type})::get(${2:contxt}, ${3:inst_name}, ${4:field_name}, ${5:value})) begin",
+            "\t`uvm_fatal(\"${6:UVM DB ITEM NOT SET}\", {\"$5 must be set for: \", get_full_name(), \".$5\"})",
+            "end"
+        ],
+        "description": "get the value from config database and fatal if it is not set"
     },
 
     "default_sequence": {
@@ -1019,13 +1042,19 @@
         "prefix": "uvm_driver",
         "body": [
             "class ${1:$TM_FILENAME_BASE} extends uvm_driver #(${2:transactionType});",
-            "\t$3",
-            "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\tprotected virtual $3_if vif;\n",
+            "\t$0\n",
+            "\t`uvm_component_utils_begin(${1:$TM_FILENAME_BASE})",
+            "\t`uvm_component_utils_end\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
-            "\t$0",
+            "\tvirtual function void build_phase(uvm_phase phase);",
+            "\t\tsuper.build_phase(phase);",
+            "\t\tif (!uvm_config_db#(virtual $2_if)::get(this, \"\", \"vif\", vif)) begin",
+            "\t\t\t`uvm_fatal(\"NOVIF\", {\"virtual interface must be set for: \", get_full_name(), \".vif\"})",
+            "\t\tend",
+            "\tendfunction",
             "endclass"
         ],
         "description": "UVM driver class template"
@@ -1035,13 +1064,19 @@
         "prefix": "uvm_monitor",
         "body": [
             "class ${1:$TM_FILENAME_BASE} extends uvm_monitor;",
-            "\t$2",
-            "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\tprotected virtual $2_if vif;\n",
+            "\t$0\n",
+            "\t`uvm_component_utils_begin(${1:$TM_FILENAME_BASE})",
+            "\t`uvm_component_utils_end\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
-            "\t$0",
+            "\tvirtual function void build_phase(uvm_phase phase);",
+            "\t\tsuper.build_phase(phase);",
+            "\t\tif (!uvm_config_db#(virtual $2_if)::get(this, \"\", \"vif\", vif)) begin",
+            "\t\t\t`uvm_fatal(\"NOVIF\", {\"virtual interface must be set for: \", get_full_name(), \".vif\"})",
+            "\t\tend",
+            "\tendfunction",
             "endclass"
         ],
         "description": "UVM monitor class template"
@@ -1053,7 +1088,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_sequencer #(${2:transactionType});",
             "\t$3",
             "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
@@ -1069,7 +1104,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_scoreboard;",
             "\t$2",
             "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
@@ -1085,7 +1120,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_env;",
             "\t$2",
             "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
@@ -1101,7 +1136,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_test;",
             "\t$2",
             "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
@@ -1117,7 +1152,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_sequence #(${2:transactionType});",
             "\t$3",
             "\t",
-            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\");",
             "\t\tsuper.new(name);",
             "\tendfunction\n",
@@ -1132,7 +1167,7 @@
         "body": [
             "class ${1:$TM_FILENAME_BASE} #(${2:parameters}) extends uvm_sequence;",
             "\ttypedef $1 #(${2/(\\b(parameter|type)\\s+([A-Za-z_][A-Za-z0-9_$]*)(\\s*=\\s*([A-Za-z0-9_$]+))?)*\\b/$3/g}) this_type_t;",
-            "\t`uvm_object_param_utils(this_type_t);\n",
+            "\t`uvm_object_param_utils(this_type_t)\n",
             "\tfunction new(string name = \"$1\");",
             "\t\tsuper.new(name);",
             "\tendfunction: new\n",
@@ -1149,7 +1184,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_sequence_item;",
             "\t$2",
             "\t",
-            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\");",
             "\t\tsuper.new(name);",
             "\tendfunction\n",
@@ -1164,7 +1199,7 @@
         "body": [
             "class ${1:$TM_FILENAME_BASE} #(${2:parameters}) extends uvm_sequence_item;",
             "\ttypedef $1 #(${2/(\\b(parameter|type)\\s+([A-Za-z_][A-Za-z0-9_$]*)(\\s*=\\s*([A-Za-z0-9_$]+))?)*\\b/$3/g}) this_type_t;",
-            "\t`uvm_object_param_utils(this_type_t);\n",
+            "\t`uvm_object_param_utils(this_type_t)\n",
             "\tfunction new(string name = \"$1\");",
             "\t\tsuper.new(name);",
             "\tendfunction: new\n",
@@ -1180,7 +1215,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_object;",
             "\t$2",
             "\t",
-            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_object_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\");",
             "\t\tsuper.new(name);",
             "\tendfunction\n",
@@ -1195,7 +1230,7 @@
         "body": [
             "class ${1:$TM_FILENAME_BASE} #(${2:parameters}) extends uvm_object;",
             "\ttypedef $1 #(${2/(\\b(parameter|type)\\s+([A-Za-z_][A-Za-z0-9_$]*)(\\s*=\\s*([A-Za-z0-9_$]+))?)*\\b/$3/g}) this_type_t;",
-            "\t`uvm_object_param_utils(this_type_t);\n",
+            "\t`uvm_object_param_utils(this_type_t)\n",
             "\tfunction new(string name = \"$1\");",
             "\t\tsuper.new(name);",
             "\tendfunction: new",
@@ -1211,7 +1246,7 @@
             "class ${1:$TM_FILENAME_BASE} extends uvm_component;",
             "\t$2",
             "\t",
-            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE});\n",
+            "\t`uvm_component_utils(${1:$TM_FILENAME_BASE})\n",
             "\tfunction new(string name = \"${1:$TM_FILENAME_BASE}\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
             "\tendfunction\n",
@@ -1226,7 +1261,7 @@
         "body": [
             "class ${1:$TM_FILENAME_BASE} #(${2:parameters}) extends uvm_component;",
             "\ttypedef $1 #(${2/(\\b(parameter|type)\\s+([A-Za-z_][A-Za-z0-9_$]*)(\\s*=\\s*([A-Za-z0-9_$]+))?)*\\b/$3/g}) this_type_t;",
-            "\t`uvm_component_param_utils(this_type_t);\n",
+            "\t`uvm_component_param_utils(this_type_t)\n",
             "\t${4:config_obj_t} config_obj;\n\n",
             "\tfunction new(string name = \"$1\", uvm_component parent);",
             "\t\tsuper.new(name, parent);",
